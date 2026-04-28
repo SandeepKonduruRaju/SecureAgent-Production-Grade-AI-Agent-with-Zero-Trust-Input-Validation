@@ -1,4 +1,11 @@
-# app/security/ensemble.py
+"""
+Ensemble classifier for prompt injection detection.
+
+Three independent classifiers vote on whether input is SAFE or UNSAFE.
+A majority (2 of 3) triggers UNSAFE. Known high-risk keywords hard-override
+the vote to UNSAFE regardless of the majority — zero tolerance for known
+attack phrases.
+"""
 
 HIGH_RISK_KEYWORDS = [
     "bypass",
@@ -8,33 +15,41 @@ HIGH_RISK_KEYWORDS = [
     "override",
 ]
 
+# Each classifier targets a distinct subset of injection patterns so that
+# evasion techniques that fool one model are caught by another.
 
-def mock_model_1(text):
-    return "UNSAFE" if any(x in text.lower() for x in ["ignore", "reveal", "system prompt"]) else "SAFE"
+def _classifier_1(text: str) -> str:
+    triggers = ["ignore", "reveal", "system prompt"]
+    return "UNSAFE" if any(t in text.lower() for t in triggers) else "SAFE"
 
-def mock_model_2(text):
-    return "UNSAFE" if any(x in text.lower() for x in ["bypass", "hacker", "admin"]) else "SAFE"
 
-def mock_model_3(text):
-    return "UNSAFE" if any(x in text.lower() for x in ["instructions", "act as", "override"]) else "SAFE"
+def _classifier_2(text: str) -> str:
+    triggers = ["bypass", "hacker", "admin"]
+    return "UNSAFE" if any(t in text.lower() for t in triggers) else "SAFE"
 
-def contains_high_risk(text: str):
-    text = text.lower()
-    return any(keyword in text for keyword in HIGH_RISK_KEYWORDS)
 
-def ensemble_vote(text: str):
-    votes = [
-        mock_model_1(text),
-        mock_model_2(text),
-        mock_model_3(text),
-    ]
+def _classifier_3(text: str) -> str:
+    triggers = ["instructions", "act as", "override"]
+    return "UNSAFE" if any(t in text.lower() for t in triggers) else "SAFE"
 
+
+def _contains_high_risk(text: str) -> bool:
+    lower = text.lower()
+    return any(kw in lower for kw in HIGH_RISK_KEYWORDS)
+
+
+def ensemble_vote(text: str) -> tuple[str, list[str], float]:
+    """
+    Run all classifiers and return (verdict, votes, confidence).
+
+    confidence is the fraction of classifiers that voted UNSAFE,
+    floored at 1.0 when a high-risk keyword triggers the hard override.
+    """
+    votes = [_classifier_1(text), _classifier_2(text), _classifier_3(text)]
     unsafe_count = votes.count("UNSAFE")
-    high_risk = contains_high_risk(text)
+    high_risk = _contains_high_risk(text)
 
-    # Hard override: high-risk keywords are treated as unsafe even with split votes.
     final = "UNSAFE" if unsafe_count >= 2 or high_risk else "SAFE"
-
     confidence = unsafe_count / len(votes)
     if high_risk and final == "UNSAFE":
         confidence = max(confidence, 1.0)

@@ -1,5 +1,3 @@
-# app/security/sanitizer.py
-
 import re
 
 INJECTION_PATTERNS = [
@@ -10,10 +8,15 @@ INJECTION_PATTERNS = [
     r"you are now",
 ]
 
-def sanitize_input(user_input: str) -> str:
-    cleaned = user_input.lower()
 
+def sanitize_input(user_input: str) -> str:
+    """
+    Remove known injection phrases from input and return cleaned text.
+
+    Used for producing the cleaned_input field in the response — NOT for
+    detection. Detection always runs on the raw input before this function.
+    """
+    cleaned = user_input
     for pattern in INJECTION_PATTERNS:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
-
     return cleaned.strip()
