@@ -1,13 +1,31 @@
-# AccomodationProject has its own repo
-AccomodationProject/
-
 # Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .venv/
 venv/
+env/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Logs
 logs/
 *.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+
+# AccomodationProject has its own separate git repo
+AccomodationProject/
